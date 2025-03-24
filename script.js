@@ -217,7 +217,7 @@ async function saveUserChanges() {
         if (result.success) {
             alert("User updated successfully!");
             closeEditPopup();
-            await loadUsers(); // Reload users after update
+            await loadUsers();
         } else {
             alert("Error updating user: " + result.message);
         }
@@ -243,7 +243,7 @@ async function confirmDeleteUser(id) {
             let result = await response.json();
             if (result.success) {
                 alert("User deleted successfully!");
-                await loadUsers(); // Reload users after deletion
+                await loadUsers();
             } else {
                 alert("Error deleting user: " + result.message);
             }
@@ -271,16 +271,16 @@ document.querySelector(".upload-btn").addEventListener("click", function() {
         method: "POST",
         body: formData,
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert("File uploaded successfully.");
-        } else {
-            alert("File upload failed: " + data.message);
-        }
-    })
-    .catch(error => {
-        console.error("Error uploading file:", error);
-        alert("There was an error uploading the file.");
-    });
+        .then(response => response.json()) // This will parse the JSON response
+        .then(data => {
+            if (data.success) {
+                alert("File uploaded successfully.");
+            } else {
+                alert("File upload failed: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Error uploading file:", error);
+            alert("There was an error uploading the file.");
+        });    
 });
