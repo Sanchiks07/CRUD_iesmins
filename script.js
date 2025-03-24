@@ -6,7 +6,6 @@ const createUserSection = document.getElementById('createUserSection');
 const readUserSection = document.getElementById('readUserSection');
 const uploadFileSection = document.getElementById('uploadFileSection');
 
-
 // Toggle sections when menu items are clicked
 createUserBtn.addEventListener('click', () => {
     createUserSection.style.display = 'block';
@@ -14,10 +13,13 @@ createUserBtn.addEventListener('click', () => {
     uploadFileSection.style.display = 'none';
 });
 
-readUserBtn.addEventListener('click', () => {
+readUserBtn.addEventListener('click', async () => {
     createUserSection.style.display = 'none';
-    readUserSection.style.display = 'block';
     uploadFileSection.style.display = 'none';
+    readUserSection.style.display = 'block';
+
+    // Load users when the Read User section is displayed
+    await loadUsers();
 });
 
 uploadFileBtn.addEventListener('click', () => {
@@ -44,16 +46,28 @@ document.getElementById('userForm').addEventListener('submit', async (e) => {
         });
 
         let result = await response.json();
-        alert(result.message);
-    }
-    catch (error) {
+        console.log("Server response:", result);
+
+        if (result.success) {
+            alert(result.message);
+
+            document.getElementById('createUserSection').style.display = 'none';
+            document.getElementById('uploadFileSection').style.display = 'none';
+            document.getElementById('readUserSection').style.display = 'block';
+
+            await loadUsers();
+
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (error) {
         console.error("Error creating user:", error);
         alert("There was an error creating the user. Please try again.");
     }
 });
 
-// Handle reading user data and displaying in the table
-document.getElementById('readUserBtn').addEventListener('click', async function () {
+// Function to load and display users
+async function loadUsers() {
     try {
         let response = await fetch("read_users.php");
         let users = await response.json();
@@ -99,11 +113,11 @@ document.getElementById('readUserBtn').addEventListener('click', async function 
             readSection.innerHTML += "<p>No users found in our DB</p>";
         }
 
-        // Hide Create User section and show Read User section
+        // Make sure the sections are displayed correctly
         createUserSection.style.display = 'none';
         readUserSection.style.display = 'block';
 
-        // Add event listener to newly created edit buttons
+        // Set up edit and delete buttons
         document.querySelectorAll('.edit-btn').forEach(button => {
             button.addEventListener('click', function () {
                 let row = this.closest('tr');
@@ -122,31 +136,28 @@ document.getElementById('readUserBtn').addEventListener('click', async function 
             button.addEventListener('click', function () {
                 let row = this.closest('tr');
                 let id = row.children[0].textContent;
-                confirmDeleteUser (id);
+                confirmDeleteUser(id);
             });
         });
     } catch (error) {
         console.error("Error fetching users:", error);
         alert("There was an error fetching users. Please try again.");
     }
-});
+}
 
 // Function to open the edit popup
 function openEditPopup(user) {
-    // Remove any existing popup
     let existingPopup = document.getElementById('editPopup');
     if (existingPopup) existingPopup.remove();
 
-    // Create the popup HTML
     let popup = document.createElement('div');
     popup.id = 'editPopup';
     popup.innerHTML = `
         <div id="editPopup">
             <div class="popup-content">
                 <h2>Edit User</h2>
-                <form id="editUser Form">
+                <form id="editUserForm">
                     <input type="hidden" id="editId" value="${user.id}">
-
                     <div class="edit-input-group">
                         <input type="text" id="editFirstName" value="${user.first_name}" required>
                         <label for="editFirstName">First Name</label>
@@ -170,8 +181,6 @@ function openEditPopup(user) {
             </div>
         </div>
     `;
-
-    // Append the popup to the body
     document.body.appendChild(popup);
 }
 
@@ -189,7 +198,6 @@ async function saveUserChanges() {
     let phoneNumber = document.getElementById('editPhoneNumber').value;
     let email = document.getElementById('editEmail').value;
 
-    // Create FormData to send
     let formData = new FormData();
     formData.append("id", id);
     formData.append("firstName", firstName);
@@ -204,12 +212,12 @@ async function saveUserChanges() {
         });
 
         let result = await response.json();
-        console.log(result); 
+        console.log(result);
 
         if (result.success) {
             alert("User updated successfully!");
             closeEditPopup();
-            document.getElementById('readUserBtn').click();
+            await loadUsers(); // Reload users after update
         } else {
             alert("Error updating user: " + result.message);
         }
@@ -220,7 +228,7 @@ async function saveUserChanges() {
 }
 
 // Function to confirm deletion of a user
-async function confirmDeleteUser (id) {
+async function confirmDeleteUser(id) {
     let confirmation = confirm("Are you sure you want to delete this user?");
     if (confirmation) {
         try {
@@ -235,7 +243,7 @@ async function confirmDeleteUser (id) {
             let result = await response.json();
             if (result.success) {
                 alert("User deleted successfully!");
-                document.getElementById('readUserBtn').click();
+                await loadUsers(); // Reload users after deletion
             } else {
                 alert("Error deleting user: " + result.message);
             }
@@ -245,3 +253,34 @@ async function confirmDeleteUser (id) {
         }
     }
 }
+
+// Upload Files script
+document.querySelector(".upload-btn").addEventListener("click", function() {
+    const fileInput = document.getElementById("file");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Please select a file.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    fetch("upload_file.php", {
+        method: "POST",
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("File uploaded successfully.");
+        } else {
+            alert("File upload failed: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error("Error uploading file:", error);
+        alert("There was an error uploading the file.");
+    });
+});
